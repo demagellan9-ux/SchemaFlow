@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <base target="_top">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #eef1f7;
+      --card: #ffffff;
+      --header: #0f172a;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --danger: #dc2626;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 6px 20px rgba(0, 0, 0, .06);
+      --radius: 14px;
+      --font: 'DM Sans', sans-serif;
+      --fdisp: 'Syne', sans-serif;
+      --fmono: 'DM Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body {
+      font-family: var(--font);
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 380px;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .login-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 12px;
+      font-family: var(--fdisp);
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .login-title {
+      font-family: var(--fdisp);
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+      font-size: .85rem;
+      color: var(--muted);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: .76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: .9rem;
+      color: var(--text);
+      background: #f8fafc;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .11);
+      background: #fff;
+    }
+
+    .form-input::placeholder {
+      color: var(--muted);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 11px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font);
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .12s;
+      margin-top: 8px;
+    }
+
+    .login-btn:hover:not(:disabled) {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
+
+    .login-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .login-btn.loading {
+      opacity: .6;
+      pointer-events: none;
+    }
+
+    .login-btn.loading::after {
+      content: '';
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .5s linear infinite;
+      margin-left: 6px;
+      vertical-align: -1px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-msg {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: var(--danger);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: .82rem;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .error-msg.show {
+      display: block;
+    }
+
+    .login-footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #f1f5f9;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: .83rem;
+      font-weight: 500;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, .22);
+      z-index: 9999;
+      max-width: 88vw;
+      text-align: center;
+      animation: toastIn .2s ease;
+      pointer-events: none;
+    }
+
+    .toast.hidden {
+      display: none;
+    }
+
+    .toast.error {
+      background: var(--danger);
+    }
+
+    .toast.success {
+      background: #059669;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .help-text {
+      font-size: .76rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">⏱</div>
+      <div class="login-title">Attendance Tracker</div>
+      <div class="login-subtitle">Time Tracking System</div>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input
+          id="username"
+          class="form-input"
+          type="text"
+          placeholder="Enter your username"
+          autocomplete="username"
+          required
+        >
+        <div class="help-text">Your work username</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input
+          id="password"
+          class="form-input"
+          type="password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <button id="loginBtn" class="login-btn" type="submit">
+        Sign In
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p style="margin-bottom: 8px;">ATS v3.0 — Production</p>
+      <p style="color: #94a3b8;">Secure authentication required</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+  var _busy = false;
+
+  document.getElementById("loginForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    if (_busy) return;
+    doLogin();
+  });
+
+  function doLogin() {
+    var username = document.getElementById("username").value.trim();
+    var password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      showError("Username and password are required.");
+      return;
+    }
+
+    _busy = true;
+    var btn = document.getElementById("loginBtn");
+    btn.disabled = true;
+    btn.classList.add("loading");
+    hideError();
+    showToast("Logging in…", "info");
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        _busy = false;
+        btn.disabled = false;
+        btn.classList.remove("loading");
+
+        if (!res.success) {
+          showError(res.error || "Login failed.");
+          showToast("Login failed", "error");
+          return;
+        }
+
+        var sessionToken = res.data.session_token;
+        showToast("Login successful! Redirecting…", "success");
+
+        // Store session token in localStorage
+        localStorage.setItem("ATS_SESSION", sessionToken);
+
+        // Redirect to main app
+        setTimeout(function() {
+          window.location.href = "?page=app";
+        }, 500);
+      })
+      .withFailureHandler(function(e) {
+        _busy = false;
+        btn.disabled = false;
+        btn.classList.remove("loading");
+        showError(e.message || "Server error.");
+        showToast("Server error", "error");
+      })
+      .login(username, password);
+  }
+
+  function showError(msg) {
+    var el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.classList.add("show");
+  }
+
+  function hideError() {
+    var el = document.getElementById("errorMsg");
+    el.classList.remove("show");
+  }
+
+  function showToast(msg, type) {
+    var t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = "toast " + (type || "info");
+    clearTimeout(t._t);
+    t._t = setTimeout(function() { t.classList.add("hidden"); }, 3000);
+  }
+</script>
+
+</body>
+</html>
