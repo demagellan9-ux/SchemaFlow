@@ -8,6 +8,7 @@ class ProjectResponse(BaseModel):
     user_id: UUID
     name: str
     description: str | None
+    status: str
     created_at: datetime
     updated_at: datetime
 

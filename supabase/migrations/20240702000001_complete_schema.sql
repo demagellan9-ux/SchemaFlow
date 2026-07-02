@@ -1,33 +1,16 @@
 -- =============================================================================
--- SchemaFlow — Canonical Database Schema
--- =============================================================================
--- This file is the source of truth for the full schema.
--- Deploy changes through versioned migration files in /migrations/.
--- See supabase/CLAUDE.md and .claude/skills/data-modeling/SKILL.md for rules.
---
--- Table creation order respects FK dependencies:
---   users → projects → uploads → schemas → mappings
---                                        → transformations
---                             → jobs → job_files
---                                    → exports
---   audit_logs (no FK enforcement — references are soft)
+-- Migration: complete_schema
+-- Replaces the initial stub migration with the full Phase 3 database design.
+-- Rollback: DROP TABLE IF EXISTS audit_logs, exports, job_files, jobs,
+--           transformations, mappings, schemas, uploads, projects, users CASCADE;
 -- =============================================================================
 
--- =============================================================================
 -- Extensions
--- =============================================================================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "moddatetime";
 
 -- =============================================================================
--- HELPER: updated_at trigger function
--- Applied individually per table below.
--- =============================================================================
-
--- =============================================================================
--- TABLE: users
--- Extends auth.users with application-level profile data.
--- The id mirrors Supabase Auth — no separate sequence needed.
+-- users
 -- =============================================================================
 CREATE TABLE users (
   id            UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -42,15 +25,11 @@ CREATE TRIGGER users_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "users_self_read_write" ON users
   FOR ALL USING (auth.uid() = id);
 
 -- =============================================================================
--- TABLE: projects
--- Top-level grouping for a consolidation task.
--- A project owns uploads, schemas, and jobs.
--- status: active | archived — archived projects are read-only.
+-- projects
 -- =============================================================================
 CREATE TABLE projects (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -63,31 +42,19 @@ CREATE TABLE projects (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX projects_user_id_idx    ON projects (user_id);
-CREATE INDEX projects_status_idx     ON projects (user_id, status);
+CREATE INDEX projects_user_id_idx ON projects (user_id);
+CREATE INDEX projects_status_idx  ON projects (user_id, status);
 
 CREATE TRIGGER projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "projects_user_isolation" ON projects
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: uploads
--- One row per uploaded spreadsheet file.
--- Binary data lives in Supabase Storage — this table stores only references.
---
--- status lifecycle:
---   pending    → file accepted, awaiting Storage confirmation
---   confirmed  → binary verified in Storage, slice extraction queued
---   sliced     → 100-row structural slice extracted and stored in slice_data
---   error      → ingestion or slice extraction failed
---
--- slice_data JSONB: { version, worksheet, header_row_index, columns[], rows[] }
--- See JSONB spec below and in supabase/types/upload.ts
+-- uploads
 -- =============================================================================
 CREATE TABLE uploads (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,25 +74,20 @@ CREATE TABLE uploads (
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX uploads_project_id_idx  ON uploads (project_id);
-CREATE INDEX uploads_user_id_idx     ON uploads (user_id);
-CREATE INDEX uploads_status_idx      ON uploads (project_id, status);
+CREATE INDEX uploads_project_id_idx ON uploads (project_id);
+CREATE INDEX uploads_user_id_idx    ON uploads (user_id);
+CREATE INDEX uploads_status_idx     ON uploads (project_id, status);
 
 CREATE TRIGGER uploads_updated_at
   BEFORE UPDATE ON uploads
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE uploads ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "uploads_user_isolation" ON uploads
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: schemas
--- Destination schema definitions — the target structure for consolidated output.
--- definition JSONB: { version, columns: DestinationColumn[] }
--- One project can have multiple schemas (e.g. different output formats).
--- See JSONB spec below and in supabase/types/schema.ts
+-- schemas
 -- =============================================================================
 CREATE TABLE schemas (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -138,25 +100,19 @@ CREATE TABLE schemas (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX schemas_project_id_idx  ON schemas (project_id);
-CREATE INDEX schemas_user_id_idx     ON schemas (user_id);
+CREATE INDEX schemas_project_id_idx ON schemas (project_id);
+CREATE INDEX schemas_user_id_idx    ON schemas (user_id);
 
 CREATE TRIGGER schemas_updated_at
   BEFORE UPDATE ON schemas
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE schemas ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "schemas_user_isolation" ON schemas
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: mappings
--- Source-to-destination column mapping for one upload against one schema.
--- One upload mapped to one schema at a time (enforced by UNIQUE constraint).
--- mapping_data JSONB: { version, entries: MappingEntry[] }
--- Confidence scores and user-confirmation state live in JSONB.
--- See JSONB spec below and in supabase/types/mapping.ts
+-- mappings
 -- =============================================================================
 CREATE TABLE mappings (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -170,26 +126,20 @@ CREATE TABLE mappings (
   UNIQUE (upload_id, schema_id)
 );
 
-CREATE INDEX mappings_upload_id_idx   ON mappings (upload_id);
-CREATE INDEX mappings_schema_id_idx   ON mappings (schema_id);
-CREATE INDEX mappings_user_id_idx     ON mappings (user_id);
+CREATE INDEX mappings_upload_id_idx  ON mappings (upload_id);
+CREATE INDEX mappings_schema_id_idx  ON mappings (schema_id);
+CREATE INDEX mappings_user_id_idx    ON mappings (user_id);
 
 CREATE TRIGGER mappings_updated_at
   BEFORE UPDATE ON mappings
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE mappings ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "mappings_user_isolation" ON mappings
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: transformations
--- Ordered transformation rule chain for a single destination column within a schema.
--- One row per (schema_id, dest_column) pair — enforced by UNIQUE constraint.
--- rules JSONB: { version, rules: TransformationRule[] }
--- Rules are pure configuration — the ETL registry executes them by name.
--- See JSONB spec below and in supabase/types/transformation.ts
+-- transformations
 -- =============================================================================
 CREATE TABLE transformations (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -211,25 +161,11 @@ CREATE TRIGGER transformations_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE transformations ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "transformations_user_isolation" ON transformations
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: jobs
--- ETL job execution record. Created synchronously; processed asynchronously.
---
--- status lifecycle:
---   queued               → job created, awaiting ETL dispatch
---   running              → ETL engine processing files
---   completed            → all files processed successfully
---   completed_with_errors → some files failed; others succeeded
---   failed               → all files failed or pipeline-level error
---
--- total_files, completed_files, failed_files are typed columns (not JSONB)
--- because they are queried frequently for progress display and filtering.
---
--- errors JSONB: { files: FileError[] } — see JSONB spec below
+-- jobs
 -- =============================================================================
 CREATE TABLE jobs (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -251,12 +187,12 @@ CREATE TABLE jobs (
   updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX jobs_user_id_idx       ON jobs (user_id);
-CREATE INDEX jobs_project_id_idx    ON jobs (project_id);
-CREATE INDEX jobs_schema_id_idx     ON jobs (schema_id);
-CREATE INDEX jobs_active_idx        ON jobs (user_id, created_at DESC)
+CREATE INDEX jobs_user_id_idx    ON jobs (user_id);
+CREATE INDEX jobs_project_id_idx ON jobs (project_id);
+CREATE INDEX jobs_schema_id_idx  ON jobs (schema_id);
+CREATE INDEX jobs_active_idx     ON jobs (user_id, created_at DESC)
   WHERE status IN ('queued', 'running');
-CREATE INDEX jobs_status_idx        ON jobs (status)
+CREATE INDEX jobs_status_idx     ON jobs (status)
   WHERE status IN ('queued', 'running');
 
 CREATE TRIGGER jobs_updated_at
@@ -264,17 +200,11 @@ CREATE TRIGGER jobs_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "jobs_user_isolation" ON jobs
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: job_files
--- Per-file processing record within a batch job.
--- Decouples per-file status from the aggregate job record.
--- error_stage identifies which pipeline stage failed (for debugging).
---
--- status lifecycle: pending → running → completed | failed
+-- job_files
 -- =============================================================================
 CREATE TABLE job_files (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -304,7 +234,6 @@ CREATE TRIGGER job_files_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE job_files ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "job_files_user_isolation" ON job_files
   FOR ALL USING (
     EXISTS (
@@ -315,15 +244,7 @@ CREATE POLICY "job_files_user_isolation" ON job_files
   );
 
 -- =============================================================================
--- TABLE: exports
--- Output file record produced by a completed job.
--- Separated from jobs because a single job could produce multiple export
--- formats, and export lifecycle (expiry, download tracking) is independent.
---
--- storage_path: Supabase Storage exports/{user_id}/{project_id}/{job_id}.{ext}
--- status: available | expired | deleted
--- expires_at: 7-day retention window — enforced by application-level cleanup
--- format: csv | xlsx
+-- exports
 -- =============================================================================
 CREATE TABLE exports (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -340,9 +261,9 @@ CREATE TABLE exports (
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX exports_job_id_idx     ON exports (job_id);
-CREATE INDEX exports_user_id_idx    ON exports (user_id);
-CREATE INDEX exports_expiry_idx     ON exports (expires_at)
+CREATE INDEX exports_job_id_idx   ON exports (job_id);
+CREATE INDEX exports_user_id_idx  ON exports (user_id);
+CREATE INDEX exports_expiry_idx   ON exports (expires_at)
   WHERE status = 'available';
 
 CREATE TRIGGER exports_updated_at
@@ -350,19 +271,12 @@ CREATE TRIGGER exports_updated_at
   FOR EACH ROW EXECUTE FUNCTION moddatetime(updated_at);
 
 ALTER TABLE exports ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "exports_user_isolation" ON exports
   FOR ALL USING (auth.uid() = user_id);
 
 -- =============================================================================
--- TABLE: audit_logs
--- Immutable append-only activity log. No updated_at — records are never mutated.
--- FK to actor_id is soft (no REFERENCES constraint) to preserve logs after
--- user account deletion.
---
--- resource_type: project | upload | schema | mapping | transformation | job | export
--- action examples: project.created, job.started, export.downloaded, schema.updated
--- payload JSONB: before/after snapshots or relevant event metadata
+-- audit_logs
+-- Append-only. No updated_at trigger. actor_id is a soft reference.
 -- =============================================================================
 CREATE TABLE audit_logs (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -378,17 +292,10 @@ CREATE TABLE audit_logs (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Optimized for the two most common access patterns:
--- 1. "Show me all activity for this resource"
--- 2. "Show me all actions by this user"
-CREATE INDEX audit_logs_resource_idx  ON audit_logs (resource_type, resource_id, created_at DESC);
-CREATE INDEX audit_logs_actor_idx     ON audit_logs (actor_id, created_at DESC);
-CREATE INDEX audit_logs_created_idx   ON audit_logs (created_at DESC);
+CREATE INDEX audit_logs_resource_idx ON audit_logs (resource_type, resource_id, created_at DESC);
+CREATE INDEX audit_logs_actor_idx    ON audit_logs (actor_id, created_at DESC);
+CREATE INDEX audit_logs_created_idx  ON audit_logs (created_at DESC);
 
--- audit_logs is append-only — no UPDATE or DELETE from application layer
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "audit_logs_user_read" ON audit_logs
   FOR SELECT USING (auth.uid() = actor_id);
-
--- Service role inserts audit records — application layer never calls INSERT directly from client

@@ -16,7 +16,6 @@ async def list_schemas(
     limit: int = 20,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> SchemaListResponse:
-    # TODO: Delegate to SchemaService.list(user_id, project_id, cursor, limit)
     raise NotImplementedError
 
 
@@ -25,7 +24,14 @@ async def create_schema(
     body: CreateSchemaRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> SchemaResponse:
-    # TODO: Delegate to SchemaService.create(user_id, body)
+    raise NotImplementedError
+
+
+@router.get("/{schema_id}", response_model=SchemaResponse)
+async def get_schema(
+    schema_id: UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> SchemaResponse:
     raise NotImplementedError
 
 
@@ -35,5 +41,12 @@ async def update_schema(
     body: UpdateSchemaRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> SchemaResponse:
-    # TODO: Delegate to SchemaService.update(user_id, schema_id, body)
+    raise NotImplementedError
+
+
+@router.delete("/{schema_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_schema(
+    schema_id: UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> None:
     raise NotImplementedError

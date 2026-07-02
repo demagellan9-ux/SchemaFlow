@@ -3,9 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from supabase._async.client import AsyncClient
 
-from app.api.v1.dependencies import require_user
-from app.core.security import AuthenticatedUser
-from app.db.supabase_client import db_dependency
+from app.core.security import AuthenticatedUser, get_current_user
 from app.models.requests.project import CreateProjectRequest, UpdateProjectRequest
 from app.models.responses.project import ProjectResponse, ProjectListResponse
 from app.services.project_service import ProjectService
@@ -24,8 +22,7 @@ async def list_projects(
     current_user: AuthenticatedUser = Depends(require_user),
     svc: ProjectService = Depends(_svc),
 ) -> ProjectListResponse:
-    result = await svc.list(current_user.user_id, cursor, limit)
-    return ProjectListResponse(**result)
+    raise NotImplementedError
 
 
 @router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
@@ -34,8 +31,7 @@ async def create_project(
     current_user: AuthenticatedUser = Depends(require_user),
     svc: ProjectService = Depends(_svc),
 ) -> ProjectResponse:
-    row = await svc.create(current_user.user_id, body.name, body.description)
-    return ProjectResponse(**row)
+    raise NotImplementedError
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -55,8 +51,16 @@ async def update_project(
     current_user: AuthenticatedUser = Depends(require_user),
     svc: ProjectService = Depends(_svc),
 ) -> ProjectResponse:
-    row = await svc.update(current_user.user_id, project_id, body.name, body.description)
-    return ProjectResponse(**row)
+    raise NotImplementedError
+
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+async def update_project(
+    project_id: UUID,
+    body: UpdateProjectRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> ProjectResponse:
+    raise NotImplementedError
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -65,4 +69,4 @@ async def delete_project(
     current_user: AuthenticatedUser = Depends(require_user),
     svc: ProjectService = Depends(_svc),
 ) -> None:
-    await svc.delete(current_user.user_id, project_id)
+    raise NotImplementedError
