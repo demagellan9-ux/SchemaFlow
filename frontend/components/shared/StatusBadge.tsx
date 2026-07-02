@@ -21,6 +21,7 @@ const STATUS_CONFIG: Record<
   expired: { label: "Expired", variant: "outline" },
   error: { label: "Error", variant: "destructive" },
   // Upload statuses
+  uploaded: { label: "Uploaded", variant: "default" },
   sliced: { label: "Ready", variant: "success" },
   // Project statuses
   active: { label: "Active", variant: "success" },

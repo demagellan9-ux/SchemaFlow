@@ -1,6 +1,4 @@
-// Mirrors FastAPI UploadResponse and related models
-
-export type UploadStatus = "pending" | "sliced" | "error";
+export type UploadStatus = "pending" | "uploaded" | "sliced" | "error";
 
 export type SourceColumn = {
   name: string;
@@ -15,16 +13,15 @@ export type SliceData = {
   worksheet: string;
   header_row_index: number;
   columns: SourceColumn[];
-  rows: Record<string, unknown>[];  // max 100 rows — enforced by API
+  rows: Record<string, unknown>[];
 };
 
 export type Upload = {
   id: string;
   project_id: string;
   user_id: string;
-  original_filename: string;
   filename: string;
-  file_extension: string | null;
+  storage_path: string;
   size_bytes: number | null;
   status: UploadStatus;
   slice_data: SliceData | null;
@@ -43,3 +40,6 @@ export type PresignResponse = {
   storage_path: string;
   expires_in: number;
 };
+
+export const ALLOWED_EXTENSIONS = [".csv", ".xls", ".xlsx"] as const;
+export const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;
