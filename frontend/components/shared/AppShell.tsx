@@ -1,17 +1,20 @@
-// TODO: Implement sidebar navigation, header, and main content area
+import { Sidebar } from "@/components/shared/Sidebar";
+import { TopNav } from "@/components/shared/TopNav";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      {/* TODO: Sidebar */}
-      <aside className="w-60 border-r bg-muted/40 p-4">
-        <p className="text-xs text-muted-foreground">Navigation placeholder</p>
-      </aside>
-      <div className="flex flex-1 flex-col">
-        {/* TODO: Header with user menu */}
-        <header className="h-14 border-b px-6 flex items-center">
-          <p className="text-xs text-muted-foreground">Header placeholder</p>
-        </header>
-        <main className="flex-1 p-6">{children}</main>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopNav />
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
+        <footer className="border-t px-6 py-3">
+          <p className="text-xs text-muted-foreground">
+            SchemaFlow &mdash; Metadata-driven spreadsheet consolidation
+          </p>
+        </footer>
       </div>
     </div>
   );

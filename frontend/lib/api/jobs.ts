@@ -1,21 +1,38 @@
-import type { Job, CreateJobRequest } from "@/types/job";
+import { apiFetch } from "@/lib/api/client";
+import type {
+  Job,
+  JobFile,
+  JobListResponse,
+  Export,
+  CreateJobRequest,
+  CreateExportRequest,
+} from "@/types/job";
 
-// TODO: Add auth header injection once auth context is available
 export async function createJob(req: CreateJobRequest): Promise<Job> {
-  const res = await fetch("/api/v1/jobs", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.detail ?? "Failed to create job");
-  }
-  return res.json();
+  return apiFetch<Job>("/jobs", { method: "POST", body: JSON.stringify(req) });
 }
 
 export async function getJob(jobId: string): Promise<Job> {
-  const res = await fetch(`/api/v1/jobs/${jobId}`);
-  if (!res.ok) throw new Error("Failed to fetch job");
-  return res.json();
+  return apiFetch<Job>(`/jobs/${jobId}`);
+}
+
+export async function listJobs(projectId: string, cursor?: string): Promise<JobListResponse> {
+  const params = new URLSearchParams({ project_id: projectId });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<JobListResponse>(`/jobs?${params}`);
+}
+
+export async function listJobFiles(jobId: string): Promise<JobFile[]> {
+  return apiFetch<JobFile[]>(`/jobs/${jobId}/files`);
+}
+
+export async function createExport(req: CreateExportRequest): Promise<Export> {
+  return apiFetch<Export>(`/jobs/${req.job_id}/exports`, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function getExport(jobId: string, exportId: string): Promise<Export> {
+  return apiFetch<Export>(`/jobs/${jobId}/exports/${exportId}`);
 }
