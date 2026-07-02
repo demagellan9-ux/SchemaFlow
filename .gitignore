@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Supabase local dev
+supabase/.branches/
+supabase/.temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Logs
+*.log
