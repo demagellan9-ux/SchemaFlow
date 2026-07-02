@@ -1,7 +1,275 @@
+-- =============================================================================
 -- SchemaFlow — Seed Data
--- Structural seed data only. No personal data. No domain-specific data.
--- Test fixtures belong in supabase/tests/fixtures/, not here.
+-- Structural seed data and sample records for development and testing.
+-- No personal data. No domain-specific data.
+-- Production: run only extension setup and bucket creation.
+-- Development: run all sections to populate a working local environment.
+-- =============================================================================
 
--- Storage buckets (run via Supabase dashboard or CLI — SQL seed cannot create buckets)
--- supabase storage create uploads --public=false
--- supabase storage create exports --public=false
+-- =============================================================================
+-- Section 1: Storage Buckets
+-- Execute via Supabase CLI or dashboard — SQL cannot create buckets.
+--
+--   supabase storage create uploads --public=false
+--   supabase storage create exports --public=false
+--
+-- Bucket policies (set via dashboard or Supabase Management API):
+--   uploads: max 30MB per object, mime types: application/vnd.ms-excel,
+--            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
+--            text/csv
+--   exports: max 100MB per object, mime types: text/csv, application/vnd.ms-excel
+-- =============================================================================
+
+-- =============================================================================
+-- Section 2: Sample Records (development only)
+-- UUIDs are fixed for referential consistency across seed runs.
+-- =============================================================================
+
+-- Note: users rows must be created after auth.users entries exist.
+-- In local dev, create a user via Supabase Auth first, then run this seed.
+
+-- Placeholder user (replace with actual auth.users id from local dev)
+-- INSERT INTO users (id, display_name) VALUES
+--   ('00000000-0000-0000-0000-000000000001', 'Dev User');
+
+-- Sample project
+-- INSERT INTO projects (id, user_id, name, description, status) VALUES
+--   (
+--     '00000000-0000-0000-0000-000000000010',
+--     '00000000-0000-0000-0000-000000000001',
+--     'Q3 Consolidation',
+--     'Consolidating regional reports for Q3 analysis',
+--     'active'
+--   );
+
+-- Sample upload (binary in Storage; slice_data populated after ETL slice stage)
+-- INSERT INTO uploads (
+--   id, project_id, user_id, filename, original_filename,
+--   storage_path, file_extension, size_bytes, status, slice_data
+-- ) VALUES (
+--   '00000000-0000-0000-0000-000000000020',
+--   '00000000-0000-0000-0000-000000000010',
+--   '00000000-0000-0000-0000-000000000001',
+--   '00000000-0000-0000-0000-000000000020.xlsx',
+--   'region_north.xlsx',
+--   'uploads/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000010/00000000-0000-0000-0000-000000000020.xlsx',
+--   'xlsx',
+--   204800,
+--   'sliced',
+--   '{
+--     "version": 1,
+--     "worksheet": "Sheet1",
+--     "header_row_index": 0,
+--     "columns": [
+--       {
+--         "name": "record_date",
+--         "inferred_type": "date",
+--         "null_rate": 0.0,
+--         "sample_values": ["2024-01-15", "2024-01-16", "2024-01-17"],
+--         "cardinality_estimate": 98
+--       },
+--       {
+--         "name": "region",
+--         "inferred_type": "string",
+--         "null_rate": 0.02,
+--         "sample_values": ["North", "South", "East"],
+--         "cardinality_estimate": 4
+--       },
+--       {
+--         "name": "value",
+--         "inferred_type": "float",
+--         "null_rate": 0.05,
+--         "sample_values": [1250.50, 980.00, 3400.75],
+--         "cardinality_estimate": null
+--       }
+--     ],
+--     "rows": []
+--   }'::jsonb
+-- );
+
+-- Sample destination schema
+-- INSERT INTO schemas (id, project_id, user_id, name, description, definition) VALUES (
+--   '00000000-0000-0000-0000-000000000030',
+--   '00000000-0000-0000-0000-000000000010',
+--   '00000000-0000-0000-0000-000000000001',
+--   'Standard Output v1',
+--   'Normalized destination schema for consolidated output',
+--   '{
+--     "version": 1,
+--     "columns": [
+--       {
+--         "name": "entry_date",
+--         "display_name": "Entry Date",
+--         "type": "date",
+--         "nullable": false,
+--         "date_format": "YYYY-MM-DD",
+--         "validation_rules": [
+--           { "type": "required", "params": {} }
+--         ]
+--       },
+--       {
+--         "name": "region_code",
+--         "display_name": "Region",
+--         "type": "string",
+--         "nullable": false,
+--         "validation_rules": [
+--           { "type": "required", "params": {} },
+--           {
+--             "type": "allowed_values",
+--             "params": { "values": ["North", "South", "East", "West"] }
+--           }
+--         ]
+--       },
+--       {
+--         "name": "amount",
+--         "display_name": "Amount",
+--         "type": "float",
+--         "nullable": true,
+--         "validation_rules": [
+--           {
+--             "type": "range",
+--             "params": { "min": 0, "max": 9999999 }
+--           }
+--         ]
+--       }
+--     ]
+--   }'::jsonb
+-- );
+
+-- Sample mapping (upload → schema)
+-- INSERT INTO mappings (id, upload_id, schema_id, user_id, mapping_data) VALUES (
+--   '00000000-0000-0000-0000-000000000040',
+--   '00000000-0000-0000-0000-000000000020',
+--   '00000000-0000-0000-0000-000000000030',
+--   '00000000-0000-0000-0000-000000000001',
+--   '{
+--     "version": 1,
+--     "entries": [
+--       {
+--         "source_col": "record_date",
+--         "dest_col": "entry_date",
+--         "confidence": 88,
+--         "user_confirmed": true
+--       },
+--       {
+--         "source_col": "region",
+--         "dest_col": "region_code",
+--         "confidence": 74,
+--         "user_confirmed": true
+--       },
+--       {
+--         "source_col": "value",
+--         "dest_col": "amount",
+--         "confidence": 62,
+--         "user_confirmed": true
+--       }
+--     ]
+--   }'::jsonb
+-- );
+
+-- Sample transformation rules
+-- INSERT INTO transformations (id, schema_id, user_id, dest_column, rules) VALUES
+-- (
+--   '00000000-0000-0000-0000-000000000050',
+--   '00000000-0000-0000-0000-000000000030',
+--   '00000000-0000-0000-0000-000000000001',
+--   'entry_date',
+--   '{
+--     "version": 1,
+--     "rules": [
+--       {
+--         "id": "11111111-1111-1111-1111-111111111111",
+--         "type": "date_format",
+--         "params": { "from_format": "MM/DD/YYYY", "to_format": "YYYY-MM-DD" },
+--         "order": 0
+--       }
+--     ]
+--   }'::jsonb
+-- ),
+-- (
+--   '00000000-0000-0000-0000-000000000051',
+--   '00000000-0000-0000-0000-000000000030',
+--   '00000000-0000-0000-0000-000000000001',
+--   'region_code',
+--   '{
+--     "version": 1,
+--     "rules": [
+--       {
+--         "id": "22222222-2222-2222-2222-222222222222",
+--         "type": "trim",
+--         "params": {},
+--         "order": 0
+--       }
+--     ]
+--   }'::jsonb
+-- );
+
+-- Sample completed job
+-- INSERT INTO jobs (
+--   id, project_id, user_id, schema_id, status,
+--   total_files, completed_files, failed_files,
+--   started_at, completed_at
+-- ) VALUES (
+--   '00000000-0000-0000-0000-000000000060',
+--   '00000000-0000-0000-0000-000000000010',
+--   '00000000-0000-0000-0000-000000000001',
+--   '00000000-0000-0000-0000-000000000030',
+--   'completed',
+--   1, 1, 0,
+--   now() - INTERVAL '5 minutes',
+--   now() - INTERVAL '2 minutes'
+-- );
+
+-- Sample job_file record
+-- INSERT INTO job_files (
+--   id, job_id, upload_id, status,
+--   rows_processed, rows_failed, started_at, completed_at
+-- ) VALUES (
+--   '00000000-0000-0000-0000-000000000070',
+--   '00000000-0000-0000-0000-000000000060',
+--   '00000000-0000-0000-0000-000000000020',
+--   'completed',
+--   982, 0,
+--   now() - INTERVAL '5 minutes',
+--   now() - INTERVAL '2 minutes'
+-- );
+
+-- Sample export record
+-- INSERT INTO exports (
+--   id, job_id, user_id, storage_path, format,
+--   size_bytes, row_count, status, expires_at
+-- ) VALUES (
+--   '00000000-0000-0000-0000-000000000080',
+--   '00000000-0000-0000-0000-000000000060',
+--   '00000000-0000-0000-0000-000000000001',
+--   'exports/00000000-0000-0000-0000-000000000001/00000000-0000-0000-0000-000000000010/00000000-0000-0000-0000-000000000060.csv',
+--   'csv',
+--   45312,
+--   982,
+--   'available',
+--   now() + INTERVAL '7 days'
+-- );
+
+-- Sample audit log entries
+-- INSERT INTO audit_logs (actor_id, action, resource_type, resource_id, payload) VALUES
+-- (
+--   '00000000-0000-0000-0000-000000000001',
+--   'project.created',
+--   'project',
+--   '00000000-0000-0000-0000-000000000010',
+--   '{ "after": { "name": "Q3 Consolidation", "status": "active" } }'::jsonb
+-- ),
+-- (
+--   '00000000-0000-0000-0000-000000000001',
+--   'job.completed',
+--   'job',
+--   '00000000-0000-0000-0000-000000000060',
+--   '{
+--     "after": {
+--       "status": "completed",
+--       "total_files": 1,
+--       "completed_files": 1,
+--       "failed_files": 0
+--     }
+--   }'::jsonb
+-- );
