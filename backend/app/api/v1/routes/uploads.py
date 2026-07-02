@@ -3,10 +3,20 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 
 from app.core.security import AuthenticatedUser, get_current_user
-from app.models.requests.upload import PresignRequest
-from app.models.responses.upload import PresignResponse, UploadResponse, SliceResponse
+from app.models.requests.upload import PresignRequest, ConfirmUploadRequest
+from app.models.responses.upload import PresignResponse, UploadResponse, UploadListResponse
 
 router = APIRouter()
+
+
+@router.get("", response_model=UploadListResponse)
+async def list_uploads(
+    project_id: UUID,
+    cursor: str | None = None,
+    limit: int = 20,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> UploadListResponse:
+    raise NotImplementedError
 
 
 @router.post("/presign", response_model=PresignResponse, status_code=status.HTTP_201_CREATED)
@@ -14,24 +24,22 @@ async def presign_upload(
     body: PresignRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> PresignResponse:
-    # TODO: Delegate to UploadService.presign(user_id, project_id, filename, size)
     raise NotImplementedError
 
 
 @router.post("/{upload_id}/confirm", response_model=UploadResponse)
 async def confirm_upload(
     upload_id: UUID,
+    body: ConfirmUploadRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> UploadResponse:
-    # TODO: Delegate to UploadService.confirm(user_id, upload_id)
-    #       Triggers async structural slice extraction in ETL engine
+    # Triggers async structural slice extraction in the ETL engine.
     raise NotImplementedError
 
 
-@router.get("/{upload_id}/slice", response_model=SliceResponse)
-async def get_slice(
+@router.get("/{upload_id}", response_model=UploadResponse)
+async def get_upload(
     upload_id: UUID,
     current_user: AuthenticatedUser = Depends(get_current_user),
-) -> SliceResponse:
-    # TODO: Delegate to UploadService.get_slice(user_id, upload_id)
+) -> UploadResponse:
     raise NotImplementedError

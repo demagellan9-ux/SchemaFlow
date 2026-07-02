@@ -4,16 +4,28 @@ from fastapi import APIRouter, Depends
 
 from app.core.security import AuthenticatedUser, get_current_user
 from app.models.requests.transformation import SaveTransformationRequest
-from app.models.responses.transformation import TransformationResponse, TransformationTypeListResponse
+from app.models.responses.transformation import (
+    TransformationResponse,
+    TransformationListResponse,
+    TransformationRegistryResponse,
+)
 
 router = APIRouter()
 
 
-@router.get("/types", response_model=TransformationTypeListResponse)
-async def list_transformation_types(
+@router.get("/registry", response_model=TransformationRegistryResponse)
+async def list_registry(
     current_user: AuthenticatedUser = Depends(get_current_user),
-) -> TransformationTypeListResponse:
-    # TODO: Return available transformation registry keys and their param schemas
+) -> TransformationRegistryResponse:
+    # Returns all transformation types available in the ETL registry with their param schemas.
+    raise NotImplementedError
+
+
+@router.get("/{schema_id}", response_model=TransformationListResponse)
+async def list_transformations(
+    schema_id: UUID,
+    current_user: AuthenticatedUser = Depends(get_current_user),
+) -> TransformationListResponse:
     raise NotImplementedError
 
 
@@ -23,7 +35,6 @@ async def get_transformation(
     dest_column: str,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> TransformationResponse:
-    # TODO: Delegate to TransformationService.get(user_id, schema_id, dest_column)
     raise NotImplementedError
 
 
@@ -34,5 +45,4 @@ async def save_transformation(
     body: SaveTransformationRequest,
     current_user: AuthenticatedUser = Depends(get_current_user),
 ) -> TransformationResponse:
-    # TODO: Delegate to TransformationService.save(user_id, schema_id, dest_column, body)
     raise NotImplementedError
