@@ -1,19 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
-import type { Job } from "@/types/job";
+"use client";
 
-// TODO: Import typed API client once lib/api/jobs.ts is implemented
-async function fetchJob(jobId: string): Promise<Job> {
-  const res = await fetch(`/api/v1/jobs/${jobId}`);
-  if (!res.ok) throw new Error("Failed to fetch job");
-  return res.json();
-}
+import { useQuery } from "@tanstack/react-query";
+import { getJob } from "@/lib/api/jobs";
+
+const TERMINAL_STATUSES = new Set(["completed", "completed_with_errors", "failed"]);
 
 export function useJobStatus(jobId: string) {
   return useQuery({
     queryKey: ["jobs", jobId],
-    queryFn: () => fetchJob(jobId),
+    queryFn: () => getJob(jobId),
     refetchInterval: (query) =>
-      query.state.data?.status === "running" ? 2000 : false,
+      query.state.data && !TERMINAL_STATUSES.has(query.state.data.status) ? 3000 : false,
     enabled: !!jobId,
   });
 }

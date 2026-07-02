@@ -1,15 +1,42 @@
-// TODO: Poll job status via GET /api/v1/jobs/:jobId (refetch every 2s while running)
-// Renders: per-file status list, progress bar, error accordion, download button
-export default function JobDetailPage({
-  params,
-}: {
+"use client";
+
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useJobStatus } from "@/hooks/useJobStatus";
+
+interface Props {
   params: { jobId: string };
-}) {
+}
+
+export default function JobDetailPage({ params }: Props) {
+  const { data: job, isPending, isError } = useJobStatus(params.jobId);
+
+  if (isPending) return <LoadingSpinner />;
+  if (isError || !job) return <p className="text-sm text-destructive">Failed to load job.</p>;
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight">Job Status</h1>
-      {/* TODO: JobStatusPanel component */}
-      <p className="text-muted-foreground text-sm">Job ID: {params.jobId}</p>
+      <PageHeader
+        title="Job Status"
+        description={`Job ID: ${params.jobId}`}
+        actions={<StatusBadge status={job.status} />}
+      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Progress</CardTitle>
+          <CardDescription>
+            {job.completed_files} of {job.total_files} files processed
+            {job.failed_files > 0 && ` · ${job.failed_files} failed`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Per-file status panel available in Phase 9.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

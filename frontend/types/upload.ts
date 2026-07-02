@@ -1,4 +1,4 @@
-export type UploadStatus = "pending" | "sliced" | "mapped" | "error";
+export type UploadStatus = "pending" | "uploaded" | "sliced" | "error";
 
 export type SourceColumn = {
   name: string;
@@ -28,3 +28,18 @@ export type Upload = {
   created_at: string;
   updated_at: string;
 };
+
+export type UploadListResponse = {
+  items: Upload[];
+  next_cursor: string | null;
+};
+
+export type PresignResponse = {
+  upload_id: string;
+  presigned_url: string;
+  storage_path: string;
+  expires_in: number;
+};
+
+export const ALLOWED_EXTENSIONS = [".csv", ".xls", ".xlsx"] as const;
+export const MAX_FILE_SIZE_BYTES = 30 * 1024 * 1024;

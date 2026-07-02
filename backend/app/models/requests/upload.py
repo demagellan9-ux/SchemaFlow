@@ -1,6 +1,9 @@
 from uuid import UUID
 from pydantic import BaseModel, Field
 
+ALLOWED_EXTENSIONS = {".csv", ".xls", ".xlsx"}
+MAX_SIZE_BYTES = 30 * 1024 * 1024  # 30 MB
+
 
 class PresignRequest(BaseModel):
     project_id: UUID

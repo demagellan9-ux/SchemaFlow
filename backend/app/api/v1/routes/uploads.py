@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
+from supabase._async.client import AsyncClient
 
 from app.core.security import AuthenticatedUser, get_current_user
 from app.models.requests.upload import PresignRequest, ConfirmUploadRequest
@@ -22,7 +23,8 @@ async def list_uploads(
 @router.post("/presign", response_model=PresignResponse, status_code=status.HTTP_201_CREATED)
 async def presign_upload(
     body: PresignRequest,
-    current_user: AuthenticatedUser = Depends(get_current_user),
+    current_user: AuthenticatedUser = Depends(require_user),
+    svc: UploadService = Depends(_svc),
 ) -> PresignResponse:
     raise NotImplementedError
 
