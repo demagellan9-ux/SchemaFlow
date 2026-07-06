@@ -11,7 +11,7 @@ from app.services.project_service import ProjectService
 router = APIRouter()
 
 
-def _svc(db: AsyncClient = Depends(db_dependency)) -> ProjectService:
+def _svc(db: DatabaseDep) -> ProjectService:
     return ProjectService(db)
 
 
