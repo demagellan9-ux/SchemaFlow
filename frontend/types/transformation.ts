@@ -4,7 +4,7 @@ export const transformationRuleSchema = z.object({
   id: z.string().uuid(),
   type: z.string(),
   params: z.record(z.unknown()),
-  order: z.number().int().nonneg(),
+  order: z.number().int().,min(0),
 });
 
 export const saveTransformationSchema = z.object({
