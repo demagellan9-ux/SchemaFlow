@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, status
 from supabase._async.client import AsyncClient
 
+from app.api.v1.dependencies.database import DatabaseDep
 from app.core.security import AuthenticatedUser, get_current_user
 from app.models.requests.project import CreateProjectRequest, UpdateProjectRequest
 from app.models.responses.project import ProjectResponse, ProjectListResponse
